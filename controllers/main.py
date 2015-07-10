@@ -16,6 +16,7 @@ class PositionedDiagramView(DiagramView):
 
         node_position_x = kw.get('node_position_x', False)
         node_position_y = kw.get('node_position_y', False)
+        custom_position_enabled = node_position_x and node_position_y
 
 
         bgcolors = {}
@@ -40,17 +41,6 @@ class PositionedDiagramView(DiagramView):
             int(id), model, node, connector, src_node, des_node, label,
             (140, 180), req.session.context)
         nodes = graphs['nodes']
-
-        if node_position_x and node_position_y:
-            node_act = req.session.model(node)
-            node_data = node_act.read([int(k) for k in nodes.keys()], [node_position_x, node_position_y], req.session.context)
-
-            for item in node_data:
-                nodes[str(item['id'])].update({
-                    'x': item[node_position_x] if item[node_position_x] else nodes[str(item['id'])]['x'] + 50,
-                    'y': item[node_position_y] if item[node_position_y] else nodes[str(item['id'])]['y'] + 50,
-                })
-
 
         transitions = graphs['transitions']
         isolate_nodes = {}
@@ -94,15 +84,29 @@ class PositionedDiagramView(DiagramView):
         field_data = fields.read(field_ids, ['relation_field'], req.session.context)
         node_act = req.session.model(node)
         search_acts = node_act.search([(field_data[0]['relation_field'], '=', id)], 0, 0, 0, req.session.context)
+
+        if custom_position_enabled and (invisible_node_fields or visible_node_fields):
+            invisible_node_fields.extend([node_position_x, node_position_y])
+
         data_acts = node_act.read(search_acts, invisible_node_fields + visible_node_fields, req.session.context)
+
+        # id indexed nodes
+        node_position_data = {d['id']: d for d in data_acts}
 
         for act in data_acts:
             n = nodes.get(str(act['id']))
             if not n:
                 n = isolate_nodes.get(act['id'], {})
-                y_max += 140
-                n.update(x=20, y=y_max)
+                if not (custom_position_enabled and (node_position_data[int(act['id'])][node_position_x] or node_position_data[int(act['id'])][node_position_y])):
+                    y_max += 140
+                    n.update(x=20, y=y_max)
                 nodes[act['id']] = n
+
+            if custom_position_enabled and (node_position_data[int(act['id'])][node_position_x] or node_position_data[int(act['id'])][node_position_y]):
+                n.update({
+                    'x': node_position_data[int(act['id'])][node_position_x],
+                    'y': node_position_data[int(act['id'])][node_position_y],
+                })
 
             n.update(
                 id=act['id'],
