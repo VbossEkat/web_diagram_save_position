@@ -19,6 +19,9 @@ definition on the diagram goes like the following example.
 </diagram>
 """,
     'version': '1.0',
+	'author': 'Soluciones Moebius',
+    #"license": "AGPL-3",
+    'website': 'http://www.solucionesmoebius.com/',
     'depends': ['web_diagram'],
     'data' : [
         'views/backend_assets.xml',
